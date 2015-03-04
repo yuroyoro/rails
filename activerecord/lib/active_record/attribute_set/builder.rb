@@ -25,6 +25,7 @@ module ActiveRecord
     def initialize(types, values, additional_types)
       @types = types
       @values = values
+      @raw_values = values.dup
       @additional_types = additional_types
       @materialized = false
       @delegate_hash = {}
@@ -51,6 +52,7 @@ module ActiveRecord
 
     def initialize_dup(_)
       @delegate_hash = delegate_hash.transform_values(&:dup)
+      @raw_values = values.dup
       super
     end
 
@@ -64,10 +66,14 @@ module ActiveRecord
       end
     end
 
+
+    attr_reader :types, :values, :raw_values, :additional_types, :delegate_hash
+
+    def type_of(name)
+      additional_types.fetch(name, types[name])
+    end
+
     protected
-
-    attr_reader :types, :values, :additional_types, :delegate_hash
-
     private
 
     def assign_default_value(name)

@@ -31,16 +31,28 @@ module ActiveRecord
       self[name].value { |n| yield n if block_given? }
     end
 
+    def fetch_raw_value(name)
+      value_present = true
+      value = attributes.raw_values.fetch(name) { value_present = false }
+      value_present ? value : fetch_value(name)
+    end
+
     def write_from_database(name, value)
-      attributes[name] = self[name].with_value_from_database(value)
+      attr = self[name].with_value_from_database(value)
+      attributes.raw_values[name] = attr.value
+      attributes[name] = attr
     end
 
     def write_from_user(name, value)
-      attributes[name] = self[name].with_value_from_user(value)
+      attr = self[name].with_value_from_user(value)
+      attributes.raw_values[name] = attr.value
+      attributes[name] = attr
     end
 
     def write_cast_value(name, value)
-      attributes[name] = self[name].with_cast_value(value)
+      attr = self[name].with_cast_value(value)
+      attributes.raw_values[name] = attr.value
+      attributes[name] = attr
     end
 
     def freeze

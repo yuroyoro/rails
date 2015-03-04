@@ -28,13 +28,23 @@ module ActiveRecord
     # is computed directly through SQL and does not trigger by itself the
     # instantiation of the actual post records.
     class CollectionProxy < Relation
+
       delegate(*(ActiveRecord::Calculations.public_instance_methods - [:count]), to: :scope)
       delegate :find_nth, to: :scope
+      delegate :merge!, to: :scope
+
+      delegate(*(VALUE_METHODS.map{|name| "#{name}_values="}), to: :scope)
+      delegate(*((VALUE_METHODS - [:create_with]).map{|name| "#{name}_values"}), to: :scope)
 
       def initialize(klass, association) #:nodoc:
         @association = association
         super klass, klass.arel_table
-        merge! association.scope(nullify: false)
+
+        if scope = association.reflection.scope
+          rel = association.klass.unscoped.instance_exec(association.owner, &scope)
+          self.extend(*rel.extending_values) unless rel.extending_values.blank?
+        end
+        Array.wrap(association.options[:extend]).each { |ext| proxy_extend(ext) }
       end
 
       def target
