@@ -28,13 +28,13 @@ module ActiveRecord
     # is computed directly through SQL and does not trigger by itself the
     # instantiation of the actual post records.
     class CollectionProxy < Relation
+
       delegate(*(ActiveRecord::Calculations.public_instance_methods - [:count]), to: :scope)
       delegate :find_nth, to: :scope
 
       def initialize(klass, association) #:nodoc:
         @association = association
         super klass, klass.arel_table
-        merge! association.scope(nullify: false)
       end
 
       def target
@@ -1026,6 +1026,33 @@ module ActiveRecord
         proxy_association.reset
         proxy_association.reset_scope
         self
+      end
+
+      DELEGATED_METHODS = [
+        ActiveRecord::Batches,
+        ActiveRecord::QueryMethods,
+        ActiveRecord::SpawnMethods
+      ].flat_map{|c| c.instance_methods(false) }.sort.uniq
+
+      delegate(*(DELEGATED_METHODS - instance_methods(false)), to: :scope)
+
+      def respond_to?(name, include_private = false)
+        super ||
+        (load_target && target.respond_to?(name, include_private)) ||
+        proxy_association.klass.respond_to?(name, include_private) ||
+        scope.respond_to?(name, include_private)
+      end
+
+      def method_missing(method, *args, &block)
+        if target.respond_to?(method) || (!proxy_association.klass.respond_to?(method) && Class.respond_to?(method))
+          if load_target && target.respond_to?(method) && array_delegable?(method)
+            return target.send(method, *args, &block)
+          end
+        elsif scope.respond_to?(method)
+          return scope.public_send(method, *args, &block)
+        end
+
+        super
       end
     end
   end
