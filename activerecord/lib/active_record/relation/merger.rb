@@ -121,10 +121,10 @@ module ActiveRecord
         relation.where_values = where_values
         relation.bind_values  = bind_values
 
-        if other.reordering_value
+        if other.reordering_value.present?
           # override any order specified in the original relation
           relation.reorder! other.order_values
-        elsif other.order_values
+        elsif other.order_values.present?
           # merge in order_values from relation
           relation.order! other.order_values
         end
