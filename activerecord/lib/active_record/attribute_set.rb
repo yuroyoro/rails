@@ -31,6 +31,10 @@ module ActiveRecord
       self[name].value { |n| yield n if block_given? }
     end
 
+    def fetch_original_value(name)
+      attributes.values[name]
+    end
+
     def write_from_database(name, value)
       attributes[name] = self[name].with_value_from_database(value)
     end

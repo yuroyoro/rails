@@ -64,10 +64,14 @@ module ActiveRecord
       end
     end
 
-    protected
 
     attr_reader :types, :values, :additional_types, :delegate_hash
 
+    def type_of(name)
+      additional_types.fetch(name, types[name])
+    end
+
+    protected
     private
 
     def assign_default_value(name)
